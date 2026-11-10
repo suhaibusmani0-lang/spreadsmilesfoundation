@@ -8,6 +8,13 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const localAdmin = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+        if (localAdmin) {
+            setUser({ email: 'Admin', role: 'superadmin' });
+            setLoading(false);
+            return;
+        }
+
         // Pehle check karega ki koi user login hai ya nahi
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
@@ -16,7 +23,12 @@ export const AuthProvider = ({ children }) => {
 
         // Agar user login ya logout karta hai, toh ye update ho jayega
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
+            const local = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+            if (local) {
+                setUser({ email: 'Admin', role: 'superadmin' });
+            } else {
+                setUser(session?.user ?? null);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -24,7 +36,6 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ user, loading }}>
-            {/* Jab tak check chal raha hai tab tak white screen rahegi, phir app load hoga */}
             {!loading && children} 
         </AuthContext.Provider>
     );

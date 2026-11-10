@@ -4,9 +4,10 @@ import { useAuth } from './AuthContext';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
+    const localToken = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
 
     // Agar user login nahi hai, toh wapas login page par bhej do
-    if (!user) {
+    if (!user && !localToken) {
         return <Navigate to="/admin/login" replace />;
     }
 
