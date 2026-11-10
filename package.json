@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/prepare-cloudflare.js",
+    "build": "node scripts/build-dispatch.js",
+    "build:next": "next build",
     "start": "next start",
     "lint": "next lint"
   },
