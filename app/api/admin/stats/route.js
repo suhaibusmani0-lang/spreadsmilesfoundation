@@ -5,6 +5,7 @@ import Program from '@/models/Program';
 import Gallery from '@/models/Gallery';
 import Document from '@/models/Document';
 import Donation from '@/models/Donation';
+import { getProjects, getPrograms, getGallery, getDocuments } from '@/lib/dataStore';
 
 export async function GET() {
   try {
@@ -20,20 +21,33 @@ export async function GET() {
 
     const totalDonations = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
 
+    // If DB is empty, use dataStore counts
+    const projectsList = await getProjects();
+    const programsList = await getPrograms();
+    const galleryList = await getGallery();
+    const documentsList = await getDocuments();
+
     return NextResponse.json({
-      projects: projCount,
-      programs: progCount,
-      gallery: galCount,
-      documents: docCount,
+      projects: Math.max(projCount, projectsList.length),
+      programs: Math.max(progCount, programsList.length),
+      gallery: Math.max(galCount, galleryList.length),
+      documents: Math.max(docCount, documentsList.length),
       totalDonations,
     });
   } catch (error) {
-    console.error('Error fetching admin stats:', error);
+    console.warn('Admin stats DB read failed, using dataStore counts:', error.message);
+    const [projectsList, programsList, galleryList, documentsList] = await Promise.all([
+      getProjects(),
+      getPrograms(),
+      getGallery(),
+      getDocuments(),
+    ]);
+
     return NextResponse.json({
-      projects: 0,
-      programs: 0,
-      gallery: 0,
-      documents: 0,
+      projects: projectsList.length,
+      programs: programsList.length,
+      gallery: galleryList.length,
+      documents: documentsList.length,
       totalDonations: 0,
     });
   }
