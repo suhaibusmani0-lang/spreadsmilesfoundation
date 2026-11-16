@@ -6,9 +6,11 @@ import { PDFDocument, rgb, degrees } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 
+let clientDocsCache = null;
+
 const DocumentsView = () => {
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState(clientDocsCache || []);
+  const [loading, setLoading] = useState(!clientDocsCache);
   const [activeTab, setActiveTab] = useState('All');
   const [downloadingId, setDownloadingId] = useState(null);
 
@@ -29,7 +31,9 @@ const DocumentsView = () => {
         data = await res.json();
       }
 
-      setDocuments(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      clientDocsCache = list;
+      setDocuments(list);
     } catch (error) {
       console.error('Error fetching docs:', error);
     } finally {

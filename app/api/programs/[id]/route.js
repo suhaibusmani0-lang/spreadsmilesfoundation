@@ -10,7 +10,11 @@ export async function GET(req, { params }) {
       return NextResponse.json({ message: 'Program not found' }, { status: 404 });
     }
 
-    return NextResponse.json(program);
+    return NextResponse.json(program, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Error in GET /api/programs/[id]:', error);
     return NextResponse.json({ message: 'Failed to fetch program' }, { status: 500 });

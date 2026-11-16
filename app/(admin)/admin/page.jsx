@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Image as ImageIcon,
   Briefcase,
@@ -51,6 +51,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const tabDataCacheRef = useRef({});
 
   // Check admin session on mount
   useEffect(() => {
@@ -69,10 +70,26 @@ const AdminDashboard = () => {
     checkAuth();
   }, [router]);
 
+  // Fetch stats once on initial auth check
   useEffect(() => {
     if (authChecked) {
-      fetchItems();
       fetchStats();
+    }
+  }, [authChecked]);
+
+  // Fetch tab items smoothly without blocking UI
+  useEffect(() => {
+    if (authChecked) {
+      // Instant switch: load cached tab data if available
+      const cached = tabDataCacheRef.current[activeTab];
+      if (cached) {
+        if (activeTab === 'donations') {
+          setDonationsList(cached);
+        } else {
+          setItemsList(cached);
+        }
+      }
+      fetchItems();
       resetForm();
       setSearchQuery('');
     }
@@ -90,19 +107,28 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchItems = async () => {
-    setFetching(true);
+  const fetchItems = async (forceFresh = false) => {
+    // Only show full fetching spinner if no cached items exist yet
+    const hasCache = !!tabDataCacheRef.current[activeTab];
+    if (!hasCache || forceFresh) {
+      setFetching(true);
+    }
     try {
       if (activeTab === 'donations') {
         const response = await fetch('/api/donations');
         if (!response.ok) throw new Error('Failed to fetch donations');
         const data = await response.json();
-        setDonationsList(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        tabDataCacheRef.current.donations = list;
+        setDonationsList(list);
       } else {
-        const response = await fetch(`/api/${activeTab}`);
+        const url = forceFresh ? `/api/${activeTab}?fresh=1` : `/api/${activeTab}`;
+        const response = await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch ${activeTab}`);
         const data = await response.json();
-        setItemsList(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        tabDataCacheRef.current[activeTab] = list;
+        setItemsList(list);
       }
     } catch (error) {
       toast.error(`Failed to load ${activeTab} data!`);
@@ -153,8 +179,9 @@ const AdminDashboard = () => {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Delete failed');
+      if (tabDataCacheRef.current) tabDataCacheRef.current[activeTab] = null;
       toast.success('Item Deleted Successfully!');
-      fetchItems();
+      fetchItems(true);
       fetchStats();
     } catch (error) {
       toast.error('Error deleting item!');
@@ -248,9 +275,10 @@ const AdminDashboard = () => {
         throw new Error(err.message || 'Failed to save item');
       }
 
+      if (tabDataCacheRef.current) tabDataCacheRef.current[activeTab] = null;
       toast.success(editingId ? 'Updated Successfully!' : 'Uploaded to Cloudinary & Saved to MongoDB!');
       resetForm();
-      fetchItems();
+      fetchItems(true);
       fetchStats();
     } catch (error) {
       console.error('Submit Error:', error);

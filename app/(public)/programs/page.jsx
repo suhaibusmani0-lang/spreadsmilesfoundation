@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
+let clientProgramsCache = null;
+
 const ProgramsPage = () => {
-  const [programs, setPrograms] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [programs, setPrograms] = useState(clientProgramsCache || []);
+  const [loading, setLoading] = useState(!clientProgramsCache);
 
   useEffect(() => {
     fetchPrograms();
@@ -18,13 +20,14 @@ const ProgramsPage = () => {
       let data = await res.json();
 
       if (Array.isArray(data) && data.length === 0) {
-        // Trigger seed if empty
         await fetch('/api/seed');
         res = await fetch('/api/programs');
         data = await res.json();
       }
 
-      setPrograms(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      clientProgramsCache = list;
+      setPrograms(list);
     } catch (error) {
       console.error('Error fetching programs:', error);
     } finally {

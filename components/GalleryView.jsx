@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, Loader2 } from 'lucide-react';
 
+let clientGalleryCache = null;
+
 const GalleryView = () => {
-  const [galleryItems, setGalleryItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [galleryItems, setGalleryItems] = useState(clientGalleryCache || []);
+  const [loading, setLoading] = useState(!clientGalleryCache);
   const [activeFilter, setActiveFilter] = useState('All');
 
   const filters = ['All', 'Education', 'Healthcare', 'Community', 'Events'];
@@ -25,7 +27,9 @@ const GalleryView = () => {
         data = await res.json();
       }
 
-      setGalleryItems(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      clientGalleryCache = list;
+      setGalleryItems(list);
     } catch (error) {
       console.error('Error fetching gallery:', error);
     } finally {

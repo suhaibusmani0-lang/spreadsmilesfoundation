@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getPrograms, createProgram } from '@/lib/dataStore';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(req) {
   try {
-    const programs = await getPrograms();
-    return NextResponse.json(programs);
+    const { searchParams } = new URL(req.url);
+    const forceFresh = searchParams.get('fresh') === '1';
+    const programs = await getPrograms(forceFresh);
+    return NextResponse.json(programs, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Error fetching programs:', error);
     return NextResponse.json([]);

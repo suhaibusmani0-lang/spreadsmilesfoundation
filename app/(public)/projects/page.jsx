@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
+let clientProjectsCache = null;
+
 const ProjectsPage = () => {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState(clientProjectsCache || []);
+  const [loading, setLoading] = useState(!clientProjectsCache);
 
   useEffect(() => {
     fetchProjects();
@@ -18,13 +20,14 @@ const ProjectsPage = () => {
       let data = await res.json();
 
       if (Array.isArray(data) && data.length === 0) {
-        // Trigger seed if empty
         await fetch('/api/seed');
         res = await fetch('/api/projects');
         data = await res.json();
       }
 
-      setProjects(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      clientProjectsCache = list;
+      setProjects(list);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
